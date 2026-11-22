@@ -157,6 +157,19 @@ node tests/playwright/spirit_layout_ui.js
 
 ---
 
+## 反馈
+
+- **优先提 [Issue](https://github.com/vvvvvv765/a-garbage-agent-dev/issues)**：问题、功能建议、使用疑问都可以，公开可检索。
+- 也可以发邮件：**Spirit.mannn@proton.me**
+
+反馈时请附上三样，能定位的快很多：
+
+1. 症状：你做了什么 → 期望什么 → 实际发生了什么
+2. 版本信息：`desktop/version.json` 或「关于 Spirit」里显示的版本
+3. 日志：最后 200 行左右就够（**发之前请把 API Key 删掉**）
+
+---
+
 ## 安全声明
 
 **Spirit 会在本机执行大模型生成的命令，默认不逐条确认。**
