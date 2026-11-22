@@ -1,81 +1,68 @@
 # 一个垃圾的agent开发
 
-> 内部代号 Spirit。Agent 不是“一个会调工具的聊天机器人”，而是一台通用计算机 —— 只是坐在键盘前的人，从「人」换成了大模型。
+> 内部代号 **Spirit**。Agent 不是“一个会调工具的聊天机器人”，而是一台通用计算机 —— 坐在键盘前的人，从「人」换成了大模型。
 
-Spirit 是一个把大模型当作**计算机使用者**的 Agent 运行时：调度核心、内存、上下文、能力体系、渲染、持久化各自是独立体系，由主板（Engine）装配起来。它自带 Web 工作台和 Electron 桌面壳，也支持在命令行里直接对话。
+[English](README.en.md) · [设计文档](spirit/说明/Agent项目构思.md) · [反馈](#反馈)
 
-这是个人项目，仍在持续开发中；接口和行为会变。
+![Spirit 工作台](images/spirit-chat.png)
 
----
+## 它是什么
 
-## 设计前提
+Spirit 是一个把大模型当作**计算机使用者**的 Agent 运行时。调度核心、内存、上下文、能力体系、渲染、持久化各自是独立体系，由主板（Engine）装配；能力（bash、文件、网络、浏览器…）像外设一样注册、审批、审计。
 
-- **高强度承载**：按“长时间运行、高频轮次、长上下文、大批工具调用、外部状态会坏”来设计，而不是“演示能跑”。
-- **有界 + 有降级**：所有随输入增长的结构都有上限，超限时有明确策略，并且可观测。
-- **长跑可恢复**：轮内检查点、断流重试、缺结果显式标注，崩溃/取消后可以接着干。
-- **能力优先**：默认不做保姆式限制；只挡会把机器搞坏的灾难操作。
-- **一切皆能力**：能力 = 子体系，统一注册、统一审批、统一审计。
+自带 Web 工作台和 Electron 桌面壳，也可以在命令行里直接对话。
 
----
+## 三个差异点
 
-## 体系结构
+| 设计 | 说明 |
+|---|---|
+| **Agent = 通用计算机** | 大模型是使用者，不是 CPU；CPU 只做调度。部件之间只走中立表，换掉一个部件，其他部件零改动 |
+| **按 10 倍负载设计** | 轮内检查点、断流重试、冷热分层、多会话真并行、有界队列 + 降级；不是“演示能跑” |
+| **内核有测试** | 100+ 个离线 Python 测试 + Playwright UI 测试，覆盖并发、超时、取消、坏配置、长跑浸泡 |
 
-| 体系 | 类比 | 职责 |
-|---|---|---|
-| AgentStart | BIOS | 自检、建立模型客户端 |
-| DC / CPU | 处理器 | 单线程调度：状态、控制信号、循环 |
-| Bus | 总线 | 体系之间交换资源的唯一通道（中立表） |
-| Memory | 内存 | 按地址存记录；常驻 worker 并发接收 |
-| Disk / Persist | 硬盘 | 会话、日志、产物、上传、沙箱的持久化 |
-| GPU | 给模型看的 GPU | 上下文组装、清洗、预算、摘要 |
-| Render | 给人看的 GPU | 流式正文、工具行、思考、异常 |
-| Provider | 模型 I/O | Responses / Chat / Anthropic 三种方言适配、重连 |
-| Capabilities | 外设簇 | bash、文件、网络、浏览器、数据处理等能力 |
-| Scenarios | 场景包 | 提示词增量 + 能力白名单 + 安全默认值 |
-| WebUI / Desktop | 前端 | Web 工作台 + Electron 桌面壳 |
-| Faults / Log / Config | 报警器 / 记录仪 / 设置 | 异常处理、日志、配置 |
-| MoBo / Engine | 主板 | 装配、开机、会话管理 |
+## 架构
 
-详细设计见：
-
-- [`spirit/说明/Agent项目构思.md`](spirit/说明/Agent项目构思.md) —— 设计思想与部件划分
-- [`spirit/说明/项目体系说明.md`](spirit/说明/项目体系说明.md) —— 当前实现、边界与验证记录
-- [`spirit/说明/体系总表.md`](spirit/说明/体系总表.md) —— 体系归属规则
-- [`spirit/Scenarios/README.md`](spirit/Scenarios/README.md) —— 场景包格式
-
----
-
-## 目录结构
-
-```text
-spirit/                 引擎（Python）
-├─ AgentStart/          启动自检、模型客户端
-├─ DC/                  调度核心、执行、安全、检查点
-├─ Capabilities/        能力实现（bash、文件、网络、浏览器…）
-├─ Scenarios/           场景包（daily / pentest）
-├─ Prompts/             基础提示词
-├─ WebUI/               Web 工作台（Flask + 静态资源）
-├─ Memory/ GPU/ Disk/   内存、上下文、持久化
-├─ Engine/ MoBo/        会话装配与主板
-└─ 说明/                设计文档
-desktop/                桌面壳（Electron + TypeScript）
-tests/
-├─ python/              100+ 个离线 Python 测试
-└─ playwright/          Playwright / Electron UI 测试
+```mermaid
+flowchart TB
+    subgraph SPIRIT["Spirit · Agent 计算机"]
+        CPU[CPU · 调度]
+        BUS[Bus · 中立表]
+        MEM[Memory · 内存]
+        GPU[GPU · 上下文]
+        CAP[Capabilities · 外设]
+        DISK[Disk · 持久化]
+        REN[Render · 渲染]
+        UI[Web 工作台 / 桌面壳]
+        CPU <--> BUS
+        BUS <--> MEM
+        BUS <--> GPU
+        BUS <--> CAP
+        MEM <--> DISK
+        CPU --> REN --> UI
+    end
+    U[用户] --> M[大模型]
+    M -->|请求 / 工具调用| CPU
+    UI --> U
 ```
 
----
+| 体系 | 职责 |
+|---|---|
+| CPU / DC | 单线程调度：状态、控制信号、循环 |
+| Bus | 体系之间交换资源的唯一通道（中立表） |
+| Memory / Disk | 按地址存记录；会话、日志、产物、上传持久化 |
+| GPU | 给模型看的上下文：组装、清洗、预算、摘要 |
+| Capabilities | 外设：bash、文件、网络、浏览器、数据处理 |
+| Scenarios | 提示词增量 + 能力白名单 + 安全默认值 |
+| Render / WebUI / Desktop | 给人看的流式输出与操作界面 |
+
+详细设计见 [`spirit/说明/`](spirit/说明/)：
+[设计思想](spirit/说明/Agent项目构思.md) ·
+[当前实现与边界](spirit/说明/项目体系说明.md) ·
+[体系归属规则](spirit/说明/体系总表.md)
 
 ## 快速开始
 
-### 环境
-
-- Python **3.11+**
-- Node.js **20+**（只有桌面壳需要）
-- 可选外部工具：ffuf、subfinder、dnsx、naabu、nuclei、gau、nmap（不随仓库分发）
-- 可选浏览器外设：ego lite（Citro Labs 的 Chromium 浏览器，不随仓库分发，需自行安装并遵守其许可）
-
-### 1. 引擎 + Web 工作台
+需要 **Python 3.11+**；桌面壳需要 **Node.js 20+**。
 
 ```bash
 cd spirit
@@ -83,35 +70,13 @@ python -m venv .venv
 # Windows: .venv\Scripts\activate
 # Linux/macOS: source .venv/bin/activate
 pip install -e .
+
+cp config.example.json config.json   # 然后填入模型 Base URL / API Key / 模型 ID
+python -m MoBo.main web              # Web 工作台：http://127.0.0.1:5000
+python -m MoBo.main                  # 命令行对话
 ```
 
-复制配置模板并填入模型信息：
-
-```bash
-cp config.example.json config.json
-```
-
-```jsonc
-{
-  "llm": {
-    "provider": "deepseek",
-    "base_url": "https://api.deepseek.com",
-    "api_key": "你的 Key",
-    "model": "deepseek-Flash"
-  }
-}
-```
-
-> 也可以用环境变量：把 `llm.api_key` 留空，在 `llm.api_key_env` 写环境变量名（默认 `DEEPSEEK_API_KEY`）。
-
-启动：
-
-```bash
-python -m MoBo.main web      # Web 工作台，默认 http://127.0.0.1:5000
-python -m MoBo.main          # 命令行对话
-```
-
-### 2. 桌面壳（可选）
+桌面壳：
 
 ```bash
 cd desktop
@@ -119,47 +84,31 @@ npm install
 npm run start
 ```
 
-桌面壳会拉起 `../spirit` 的引擎，数据落在 `desktop/data`，工作目录是 `desktop/workspace`。
-
----
+> `llm.api_key` 也可以留空，改用环境变量：在 `llm.api_key_env` 里写变量名（默认 `DEEPSEEK_API_KEY`）。
 
 ## 能力与场景
 
-所有场景共享的能力（`Scenarios/common.json`）：
-
-`bash`、`readFile`、`writeFile`、`listDir`、`replaceInFile`、`searchFiles`、`viewImage`、`webSearch`、`browser`、`httpRequest`、`processStart` / `processOutput` / `processKill`、`todoWrite` / `todoRead`、`sessionSearch`、`parseData`、`archiveList` / `archiveExtract` / `archiveCreate`、`assetsWrite`
-
-场景额外能力：
+所有场景共享：`bash`、文件读写/检索、`view_image`、`http_request`、进程管理、待办、`web_search`、`browser`、数据解析、打包解包、资产写入。
 
 | 场景 | 额外能力 |
 |---|---|
-| **daily（日常）** | `dnsLookup`、`httpProbe`、`fetchUrl`、`findFiles`、`processList` |
-| **pentest（渗透）** | `sandboxRun`、`fofaSearch`、`quakeSearch`、`hunterSearch`、`domainCollect`、`ffufScan`、`naabuScan`、`nucleiScan`、`gauUrls` |
+| **daily** | DNS、HTTP 探活、抓取、文件查找、进程列表 |
+| **pentest** | 沙箱执行、FOFA/Quake/Hunter、子域收集、ffuf、naabu、nuclei、gau |
 
-场景 = 提示词增量 + 能力白名单 + 安全默认值；切换只在轮次边界生效。新增场景只需复制一个文件夹。
-
----
+场景 = 提示词增量 + 能力白名单 + 安全默认值，切换只在轮次边界生效。新增场景只需复制一个文件夹，详见 [`spirit/Scenarios/README.md`](spirit/Scenarios/README.md)。
 
 ## 测试
 
 ```bash
-# 离线 Python 测试（默认使用仓库内的 spirit/ 作为引擎根）
-python tests/python/spirit_kernel_brutal_test.py
-
-# UI 测试（需要先装 playwright）
-npm install playwright
-node tests/playwright/spirit_layout_ui.js
+python tests/python/spirit_kernel_brutal_test.py   # 离线内核测试
+node tests/playwright/spirit_layout_ui.js          # UI 测试（需 playwright）
 ```
 
-- Python 测试默认把 `tests/python` 的上两级 `spirit/` 当作引擎根，可用 `SPIRIT_SOURCE` 覆盖；虚拟环境解释器可用 `SPIRIT_PY` 覆盖。
-- 带 `live` 字样的用例需要真实模型或 ego lite，会自行跳过。
-- 详见 [`tests/README.md`](tests/README.md)。
-
----
+测试默认以仓库内 `spirit/` 为引擎根，可用 `SPIRIT_SOURCE` / `SPIRIT_PY` 覆盖。详见 [`tests/README.md`](tests/README.md)。
 
 ## 反馈
 
-- **优先提 [Issue](https://github.com/vvvvvv765/a-garbage-agent-dev/issues)**：问题、功能建议、使用疑问都可以，公开可检索。
+- **优先提 [Issue](https://github.com/vvvvvv765/a-garbage-agent-dev/issues)**：问题、建议、使用疑问都可以，公开可检索。
 - 也可以发邮件：**Spirit.mannn@proton.me**
 
 反馈时请附上三样，能定位的快很多：
@@ -167,8 +116,6 @@ node tests/playwright/spirit_layout_ui.js
 1. 症状：你做了什么 → 期望什么 → 实际发生了什么
 2. 版本信息：`desktop/version.json` 或「关于 Spirit」里显示的版本
 3. 日志：最后 200 行左右就够（**发之前请把 API Key 删掉**）
-
----
 
 ## 安全声明
 
@@ -179,29 +126,19 @@ node tests/playwright/spirit_layout_ui.js
 - `config.json` 里是明文 API Key，且被 `.gitignore` 排除；不要提交、不要外传。
 - 本项目按 MIT 许可“按原样”提供，不对使用后果作任何担保。
 
----
-
 ## 已知限制
 
-- 桌面壳与部分能力（bash、路径规则）以 Windows 为第一目标；引擎核心是跨平台的。
-- 浏览器能力依赖外部的 ego lite，需自行安装；未安装时相关能力不可用。
-- 外部工具、字典、nuclei 模板、便携 bash 均不随仓库分发，需要自行准备并遵守各自许可。
-- 配置、会话、日志都是本地明文文件；不要在多用户机器上共享同一份数据目录。
-- UI 测试依赖本机 Electron / Playwright 环境，部分用例以打包产物为对象。
-- 项目仍是个人开发阶段，接口和行为可能变化。
+- 桌面壳与部分能力（bash、路径规则）以 Windows 为第一目标；引擎核心跨平台。
+- 浏览器能力依赖外部 ego lite，需自行安装；未安装时相关能力不可用。
+- 外部工具、字典、nuclei 模板、便携 bash **不随仓库分发**，需自行准备并遵守各自许可。
+- 配置、会话、日志都是本地明文文件；不要在多用户机器上共享数据目录。
+- UI 测试依赖本机 Electron / Playwright 环境，部分用例面向打包产物。
+- 个人项目，仍在开发，接口和行为可能变化。
 
----
-
-## 第三方
+## 第三方与许可
 
 - 供应商预设与部分交互行为参考 [cc-switch](https://github.com/farion1231/cc-switch)（MIT）
-- Web UI 的 Markdown 解析使用 DeepSeek Harness 的 `marked.esm.js`（MIT，许可文件随附于 `WebUI/static/dsh/`）
-- 其余依赖见 `spirit/pyproject.toml` 与 `desktop/package.json`
+- Markdown 解析使用 DeepSeek Harness 的 `marked.esm.js`（MIT，许可文件随附）
+- 完整说明见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
 
-完整说明见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
-
----
-
-## 许可
-
-[MIT](LICENSE)
+本项目以 [MIT](LICENSE) 许可发布。
