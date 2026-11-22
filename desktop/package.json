@@ -1,0 +1,92 @@
+{
+  "name": "spirit-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Spirit 桌面壳：拉起引擎，装载 Spirit 自有工作台界面",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "build:engine": "node scripts/build-engine.mjs",
+    "start": "npm run build && electron .",
+    "dev": "npm run build && electron . --dev",
+    "portable": "npm run build && npm run build:engine && node scripts/make-portable.mjs",
+    "portable:fast": "npm run build && node scripts/make-portable.mjs",
+    "portable:fresh": "npm run build && npm run build:engine && node scripts/make-portable.mjs --fresh",
+    "update": "node scripts/update.mjs --pull",
+    "update:relaunch": "node scripts/update.mjs --pull --relaunch",
+    "dist": "npm run build && npm run build:engine && node scripts/write-version.mjs && electron-builder --win nsis",
+    "publish": "npm run build && npm run build:engine && node scripts/make-portable.mjs --publish",
+    "dist:fast": "npm run build && node scripts/write-version.mjs && electron-builder --win nsis"
+  },
+  "author": "Spirit",
+  "devDependencies": {
+    "@types/node": "22.10.0",
+    "electron": "33.4.11",
+    "electron-builder": "26.18.0",
+    "typescript": "5.7.2"
+  },
+  "build": {
+    "appId": "com.spirit.desktop",
+    "productName": "Spirit",
+    "directories": {
+      "output": "release/installer"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "engine-dist/spirit-engine",
+        "to": "engine"
+      },
+      {
+        "from": "../spirit/shell/PortableGit",
+        "to": "engine/_internal/shell/PortableGit"
+      },
+      {
+        "from": "../spirit/shell/ego-lite",
+        "to": "engine/_internal/shell/ego-lite"
+      },
+      {
+        "from": "../spirit/shell/tools",
+        "to": "engine/_internal/shell/tools"
+      },
+      {
+        "from": "../spirit/shell/nuclei-templates",
+        "to": "engine/_internal/shell/nuclei-templates"
+      },
+      {
+        "from": "../spirit/shell/wordlists",
+        "to": "engine/_internal/shell/wordlists"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "extraFiles": [
+      {
+        "from": "version.json",
+        "to": "version.json"
+      },
+      {
+        "from": "反馈说明.txt",
+        "to": "反馈说明.txt"
+      }
+    ],
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "artifactName": "Spirit-Setup-${version}.exe"
+    },
+    "electronDist": "node_modules/electron/dist"
+  }
+}

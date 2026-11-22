@@ -1,0 +1,19 @@
+Spirit 反馈说明
+================
+
+反馈时请附上这三样，能定位的会快很多：
+
+1. 症状：你做了什么 → 期望什么 → 实际发生了什么（截图更好）。
+2. 版本信息：安装目录里的 version.json（或「关于 Spirit」里显示的版本）。
+3. 日志：Spirit.exe 旁边的 data\Logs\ 下的 desktop.log 和 spirit.log
+   （只发最后 200 行左右就够）。
+
+数据位置（安装版 / 便携版都一样，跟着程序走）：
+  Spirit.exe 旁边的 data\
+    config.json       模型 / 提供商 / API Key（**发日志前请把 Key 删掉**）
+    Session_Storage\  会话记录
+    Logs\             运行日志
+    Artifacts\        能力产物（大输出落盘）
+  Spirit.exe 旁边的 workspace\   工作目录
+
+早期安装版把数据放在 %APPDATA%\Spirit；首次启动会自动复制到程序旁边（旧目录保留）。

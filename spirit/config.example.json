@@ -1,0 +1,128 @@
+{
+  "llm": {
+    "provider": "deepseek",
+    "provider_id": "deepseek",
+    "model": "deepseek-Flash",
+    "base_url": "https://api.deepseek.com",
+    "api_key": "",
+    "api_key_env": "DEEPSEEK_API_KEY",
+    "pricing": {
+      "input": 0,
+      "output": 0,
+      "currency": "CNY"
+    },
+    "reasoning": "medium",
+    "timeout": 120,
+    "context_window": 128000,
+    "max_tokens": 8192,
+    "search_base_url": "https://api.deepseek.com/anthropic/v1",
+    "search_model": "deepseek-v4-flash",
+    "search_provider": "deepseek",
+    "tavily_api_key": "",
+    "tavily_api_key_env": "TAVILY_API_KEY"
+  },
+  "engine": {
+    "max_steps": 0,
+    "thinking": false,
+    "restore": true,
+    "system_prompt": "",
+    "system_prompt_file": "Prompts/engine.md",
+    "scenario": "daily",
+    "pentest_scope": [],
+    "project_context": "",
+    "tool_output_inline": 4000,
+    "bash_timeout": 30,
+    "browser_timeout": 120,
+    "ego_browser": "",
+    "keep_recent_tool_results": 5,
+    "summarize": true,
+    "keep_recent_turns": 2,
+    "tool_workers": 4,
+    "capability_timeout": 60,
+    "capability_queue": 32,
+    "capability_isolation": true,
+    "capability_workers": 2,
+    "log_max_bytes": 5242880,
+    "log_backups": 3,
+    "access": "workspace",
+    "approval": "auto",
+    "approval_timeout": 30,
+    "untrusted_policy": "confirm",
+    "max_turn_tokens": 0,
+    "max_session_tokens": 0,
+    "max_turn_cost": 0,
+    "max_session_cost": 0,
+    "repeat_limit": 3,
+    "max_images_per_request": 8,
+    "failover": {
+      "enabled": false,
+      "prefer_primary": true,
+      "threshold": 4,
+      "cooldown": 60,
+      "total_timeout": 180
+    },
+    "sandbox": {
+      "workspace_only": false,
+      "allow_paths": [],
+      "deny_paths": [
+        "~/.ssh",
+        "~/.aws",
+        "~/.gnupg",
+        "~/.git-credentials",
+        "~/.npmrc",
+        "~/.docker/config.json"
+      ],
+      "home_is_workspace": true,
+      "scrub_env": true,
+      "auto_allow_outside": false,
+      "wsl_distro": "kali-linux",
+      "isolation_timeout": 120,
+      "deny_parent_escape": true,
+      "deny_commands": [
+        "\\brm\\s+(-\\S+\\s+)*[/~]",
+        "\\bmkfs(\\.|\\s)",
+        "\\bdiskpart\\b",
+        "\\bformat\\s+[a-z]:",
+        ":\\(\\)\\s*\\{\\s*:\\s*\\|\\s*:\\s*&\\s*\\}\\s*;\\s*:",
+        "\\bshutdown\\s+[/-]"
+      ]
+    },
+    "workdir": "",
+    "default_workspace": "",
+    "workspaces": [],
+    "spill_dir": "Session_Storage/spill",
+    "budget_ratio": 0.8,
+    "bash_path": "",
+    "web_host": "127.0.0.1",
+    "web_port": 5000
+  },
+  "tools": {
+    "ffuf": "",
+    "subfinder": "",
+    "dnsx": "",
+    "naabu": "",
+    "nmap": ""
+  },
+  "assets": {
+    "platforms": {
+      "fofa": {
+        "enabled": false,
+        "key": "",
+        "base_url": "",
+        "status": {}
+      },
+      "quake": {
+        "enabled": false,
+        "key": "",
+        "base_url": "",
+        "status": {}
+      },
+      "hunter": {
+        "enabled": false,
+        "key": "",
+        "base_url": "",
+        "status": {}
+      }
+    }
+  }
+}

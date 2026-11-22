@@ -1,0 +1,19 @@
+{
+  "id": "daily",
+  "name": "日常",
+  "description": "通用对话、代码、文件与资料检索",
+  "prompt": "prompt.md",
+  "capabilities": [
+    "dnsLookup",
+    "httpProbe",
+    "fetchUrl",
+    "findFiles",
+    "processList"
+  ],
+  "defaults": {
+    "max_steps": 0,
+    "sandbox": {
+      "workspace_only": false
+    }
+  }
+}

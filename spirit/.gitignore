@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# 构建产物
+build/
+*.egg-info/
+dist/*.whl
+
+# Spirit 运行时数据
+Session_Storage/
+Logs/
+
+# 本地配置可能含 API Key，不进库（模板见 dist/config.example.json）
+config.json
+
+# 便携 bash（200MB+，装回去能重建）
+shell/
+
+# 配置落盘时的备份 / 损坏副本（可能含 API Key）
+config.json.bak
+config.json.corrupt-*
+# 运行时产物（能力落盘 / 上传）
+Artifacts/
+uploads/
+workspace/

@@ -1,0 +1,26 @@
+{
+  "description": "所有场景共享的能力。场景自己的清单只需要写额外能力（会与这里求并集）。",
+  "capabilities": [
+    "bash",
+    "readFile",
+    "viewImage",
+    "writeFile",
+    "listDir",
+    "replaceInFile",
+    "searchFiles",
+    "webSearch",
+    "browser",
+    "httpRequest",
+    "processStart",
+    "processOutput",
+    "processKill",
+    "todoWrite",
+    "todoRead",
+    "sessionSearch",
+    "parseData",
+    "archiveList",
+    "archiveExtract",
+    "archiveCreate",
+    "assetsWrite"
+  ]
+}

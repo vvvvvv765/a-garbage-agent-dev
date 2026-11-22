@@ -1,0 +1,8 @@
+node_modules/
+dist/
+release/
+engine-dist/
+engine-build/
+data/
+workspace/
+*.log

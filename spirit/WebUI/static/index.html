@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="/static/logo.png">
+  <title>Spirit</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/spirit-theme.css">
+</head>
+<body>
+<!-- 自绘标题栏（Electron 隐藏原生标题栏后由页面画；网页模式隐藏） -->
+<div class="titlebar" id="titlebar" hidden>
+  <span class="titlebar-name">Spirit</span>
+</div>
+<div class="shell" id="shell">
+  <!-- 左侧栏 -->
+  <aside class="sidebar">
+    <div class="brand">
+      <img class="brand-logo-img" src="/static/logo.png" alt="">
+      <span class="brand-name">spirit</span>
+      <span class="brand-badge">AGENT</span>
+    </div>
+
+    <button class="new-session" id="newSession">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      新对话
+    </button>
+
+    <div class="ws-head">
+      <span>对话</span>
+      <span class="ws-tools">
+        <input class="ws-search" id="sessionSearch" placeholder="搜索对话" hidden>
+        <button id="searchBtn" title="搜索">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6.2" cy="6.2" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M9.3 9.3 12 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </button>
+      </span>
+    </div>
+
+    <div class="ws-list">
+      <div class="session-list" id="sessionList"></div>
+    </div>
+
+  </aside>
+
+  <div class="sidebar-resizer" id="sidebarResizer" title="拖动调整侧栏宽度；双击复位"></div>
+
+  <!-- 主区 -->
+  <main class="main">
+    <header class="conv-header">
+      <div class="conv-heading">
+        <h1 id="convTitle">新会话</h1>
+        <button class="chip" id="scenarioChip" title="切换场景">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1.6 8.5 5.4l4 .3-3 2.6.9 3.9L7 10l-3.4 2.2.9-3.9-3-2.6 4-.3L7 1.6Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>
+          <span id="scenarioLabel">日常</span>
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="conv-tabs">
+        <button class="tab active" id="tabChat">对话</button>
+        <button class="tab" id="tabTrail">活动</button>
+        <button class="tab tab-more" id="tabMore" title="更多">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 3 7.5 6l-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="tab tab-action" id="infoButton" hidden>信息收集</button>
+        <button class="tab tab-action" id="assetsButton" hidden>资产库</button>
+      </div>
+      <div class="conv-actions">
+        <button class="icon-btn" id="menuBtn" title="菜单">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="3" cy="8" r="1.1" fill="currentColor"/><circle cx="8" cy="8" r="1.1" fill="currentColor"/><circle cx="13" cy="8" r="1.1" fill="currentColor"/></svg>
+        </button>
+        <button class="icon-btn" id="panelBtn" title="收起/展开侧栏">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.2" y="3" width="11.6" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M10 3v10" stroke="currentColor" stroke-width="1.2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="body" id="body">
+      <div class="transcript" id="transcript">
+        <div class="column" id="column"></div>
+      </div>
+      <div class="trajectory" id="trajectory" hidden></div>
+      <div class="turn-rail" id="turnRail"></div>
+    </div>
+
+    <div class="composer-area" id="composerArea">
+      <div class="heroGreeting" id="greeting">今天想做点什么？</div>
+      <div class="auto-hint" id="autoHint" hidden><span class="auto-mark">⏵⏵</span> 自动模式已开启 <span class="auto-sub">Shift+Tab 切换</span></div>
+      <div class="attachPreview" id="attachPreview" hidden></div>
+      <div class="composerCard">
+        <div class="composerScroll">
+          <textarea class="composerInput" id="input" rows="1" placeholder="发消息给 Spirit…（可粘贴 / 拖入图片）"></textarea>
+        </div>
+        <div class="composerRow">
+          <div class="composerLeft">
+            <button class="ghost-chip" id="attachBtn" title="添加图片">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2.2" y="3" width="11.6" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M3 11.4l3.2-3.2 2.2 2.2 2-2 2.6 2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10.6" cy="6.2" r="1" fill="currentColor"/></svg>
+            </button>
+            <input type="file" id="imageFile" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+            <button class="ghost-chip" id="accessChip" title="工作范围：能碰什么">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.6" stroke="currentColor" stroke-width="1.2"/><path d="M8 5.2v3.2l2 1.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              <span id="accessLabel">可修改</span>
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="ghost-chip" id="workdirChip" title="操作模式：要不要问（Shift+Tab 切换）">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2.2" y="2.2" width="11.6" height="11.6" rx="3.2" stroke="currentColor" stroke-width="1.2"/><path d="M5.4 6.6h5.2M5.4 9.2h3.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              <span id="approvalLabel">询问</span>
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="composerRight">
+            <button class="model-pill" id="modelPill">
+              <span id="modelPillText">DeepSeek-Flash High</span>
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2.5 7.5 6 4l3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="sendButton" id="send" disabled title="发送">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 13V3M8 3L3.5 7.5M8 3l4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="stats">
+        <span class="stat clickable" id="turnStat" title="查看会话统计">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.4V7l1.8 1.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <span id="statTurns">0 轮 0 步</span>
+        </span>
+        <span class="stat clickable" id="tokenStat" title="查看 Token 用量">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><ellipse cx="7" cy="4" rx="4.4" ry="2" stroke="currentColor" stroke-width="1.2"/><path d="M2.6 4v6c0 1.1 2 2 4.4 2s4.4-.9 4.4-2V4" stroke="currentColor" stroke-width="1.2"/></svg>
+          <span id="statTokens">0 tok · 缓存命中 0%</span>
+        </span>
+        <span class="stat clickable" id="contextStat" title="查看上下文构成">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 2.2a4.8 4.8 0 1 1-4.8 4.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M7 4.4V7l2 1.1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <span id="statContext">0%</span>
+        </span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Token 用量 -->
+<div class="stats-pop" id="usagePop" hidden>
+  <div class="stats-pop-head">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><ellipse cx="7" cy="4" rx="4.4" ry="2" stroke="currentColor" stroke-width="1.2"/><path d="M2.6 4v6c0 1.1 2 2 4.4 2s4.4-.9 4.4-2V4" stroke="currentColor" stroke-width="1.2"/></svg>
+    <span>Token 用量</span>
+    <b id="usagePopTotal">0 tok</b>
+  </div>
+  <div class="stats-pop-rows">
+    <div class="stats-pop-row"><span>缓存命中</span><span id="usagePopCached">0%</span></div>
+    <div class="stats-pop-row"><span>未缓存输入</span><span id="usagePopUncached">0 tok</span></div>
+    <div class="stats-pop-row"><span>缓存读取</span><span id="usagePopRead">0 tok</span></div>
+    <div class="stats-pop-row"><span>输出</span><span id="usagePopOutput">0 tok</span></div>
+  </div>
+</div>
+
+<!-- 会话统计 -->
+<div class="stats-pop" id="turnPop" hidden>
+  <div class="stats-pop-head">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.4V7l1.8 1.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+    <span>会话统计</span>
+    <b id="turnPopCount">0 轮 0 步</b>
+  </div>
+  <div class="stats-pop-rows">
+    <div class="stats-pop-row"><span>模型用时</span><span id="turnPopElapsed">—</span></div>
+    <div class="stats-pop-row"><span>首 token 平均 (TTFT)</span><span id="turnPopTtft">—</span></div>
+    <div class="stats-pop-row"><span>输出速度 (TPS)</span><span id="turnPopTps">—</span></div>
+  </div>
+</div>
+
+<!-- 上下文用量 -->
+<div class="context-pop" id="contextPop" hidden>
+  <div class="ctx-head">
+    <span>上下文已用 <b id="ctxPercent">0%</b></span>
+    <span class="ctx-total" id="ctxTotal">~0 / 128K</span>
+  </div>
+  <div class="ctx-bar">
+    <span class="ctx-seg system" id="ctxBarSystem"></span>
+    <span class="ctx-seg tools" id="ctxBarTools"></span>
+    <span class="ctx-seg messages" id="ctxBarMessages"></span>
+  </div>
+  <div class="ctx-rows">
+    <div class="ctx-row">
+      <span class="ctx-dot system"></span><span>系统提示词</span>
+      <span id="ctxSystem">~0</span>
+    </div>
+    <div class="ctx-row">
+      <span class="ctx-dot tools"></span><span>工具定义</span>
+      <span id="ctxTools">~0</span>
+    </div>
+    <div class="ctx-row">
+      <span class="ctx-dot messages"></span><span>对话消息</span>
+      <span id="ctxMessages">~0</span>
+    </div>
+  </div>
+</div>
+
+<!-- 模型浮层 -->
+<div class="popover" id="modelPopover" hidden>
+  <div class="pop-row" id="popModel">
+    <span>模型</span>
+    <span class="pop-value"><span id="popModelValue">DeepSeek-Flash</span></span>
+  </div>
+  <div class="pop-list" id="popModelList" hidden></div>
+  <div class="pop-row" id="popEffort">
+    <span>推理等级</span>
+    <span class="pop-value"><span id="popEffortValue">High</span>
+      <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M4.5 3 7.5 6l-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+  </div>
+  <div class="pop-row" id="popThinking">
+    <span>深度思考</span>
+    <button class="switch" id="popThinkingSwitch" role="switch" aria-checked="false"></button>
+  </div>
+</div>
+
+<!-- 场景切换 -->
+<div class="menu-pop scenario-pop" id="scenarioPop" hidden></div>
+
+<!-- 操作模式（问不问） -->
+<div class="menu-pop approval-pop" id="approvalPop" hidden>
+  <button data-mode="ask">询问</button>
+  <button data-mode="auto">自动（⏵⏵）</button>
+  <div class="menu-hint">写文件 / 执行命令时要不要先问你；Shift+Tab 可切换</div>
+</div>
+
+<!-- 工作范围（能碰什么） -->
+<div class="menu-pop approval-pop" id="accessPop" hidden>
+  <button data-access="workspace">可修改</button>
+  <button data-access="readonly">查看（只读）</button>
+  <div class="menu-sep"></div>
+  <button data-outside-auto="1">
+    <span>工作区外访问</span>
+    <span class="scope-count" id="outsideAutoState">自动允许</span>
+  </button>
+  <div class="menu-hint" id="accessHint">查看：写文件 / 执行命令直接拒绝；可修改：允许改，工作区外也能访问</div>
+</div>
+
+<!-- 顶栏菜单 -->
+<div class="menu-pop" id="menuPop" hidden>
+  <button data-action="general-settings">通用设置</button>
+  <button data-action="model-settings">大模型设置</button>
+  <div class="menu-sep"></div>
+  <button data-action="about">关于 Spirit</button>
+  <button data-action="stop-engine">关机</button>
+</div>
+
+<!-- 输入框（Electron 不支持 window.prompt） -->
+<div class="modal-mask" id="promptMask" hidden>
+  <div class="prompt-box">
+    <div class="prompt-title" id="promptTitle">输入</div>
+    <input class="prompt-input" id="promptInput" autocomplete="off">
+    <div class="prompt-actions">
+      <button class="ghost-btn" id="promptCancel">取消</button>
+      <button class="ghost-btn primary" id="promptOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 渗透授权范围 -->
+<div class="modal-mask" id="scopeMask" hidden>
+  <div class="prompt-box scope-box">
+    <div class="prompt-title">渗透授权范围</div>
+    <p class="scope-hint">每行一个目标：域名、<code>*.子域</code>、IP 或 <code>192.168.0.0/24</code> 网段。本机与私网地址默认允许；范围外的目标会被拒绝。新发现的主机不在写法内不算范围内。</p>
+    <textarea class="prompt-input scope-input" id="scopeInput" rows="7" spellcheck="false"></textarea>
+    <div class="prompt-actions">
+      <button class="ghost-btn" id="scopeCancel">取消</button>
+      <button class="ghost-btn primary" id="scopeSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 供应商导入 / 导出 -->
+<div class="modal-mask" id="providerIoMask" hidden>
+  <div class="prompt-box provider-io-box">
+    <div class="prompt-title" id="providerIoTitle">导入供应商</div>
+    <p class="scope-hint" id="providerIoHint"></p>
+    <textarea class="prompt-input provider-io-text" id="providerIoText" rows="12" spellcheck="false"></textarea>
+    <div class="prompt-actions">
+      <button class="ghost-btn" id="providerIoCopy">复制</button>
+      <button class="ghost-btn" id="providerIoCancel">关闭</button>
+      <button class="ghost-btn primary" id="providerIoOk">导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 图标选择 -->
+<div class="modal-mask" id="iconMask" hidden>
+  <div class="prompt-box icon-box">
+    <div class="prompt-title">选择图标</div>
+    <input class="prompt-input" id="iconSearch" placeholder="搜索图标（按供应商名，例如 kimi、glm）">
+    <div class="icon-grid" id="iconGrid"></div>
+    <div class="prompt-actions">
+      <button class="ghost-btn" id="iconClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 提示条 -->
+<div class="toast" id="toast" hidden></div>
+<div class="toast warn" id="renderWarn" hidden></div>
+
+<!-- 信息收集弹窗：一个项目一页 -->
+<div class="modal-mask info-mask" id="drawerMask" hidden>
+  <section class="info-modal" id="infoDrawer">
+    <header class="drawer-head">
+      <div class="drawer-head-text">
+        <div class="drawer-title">信息收集</div>
+        <div class="drawer-sub" id="drawerProject">当前项目</div>
+        <div class="project-tabs" id="projectTabs"></div>
+      </div>
+      <button class="icon-btn" id="drawerClose" title="关闭">×</button>
+    </header>
+    <nav class="drawer-tabs">
+      <button class="active" data-dtab="collect">收集</button>
+      <button data-dtab="assets">资产</button>
+      <button data-dtab="queries">记录</button>
+    </nav>
+    <div class="drawer-body">
+      <section class="drawer-panel" data-dpanel="collect">
+        <div class="collect-section">
+          <div class="collect-head">
+            <span>测绘平台</span>
+            <span class="collect-hint">启用并验证通过后才会出现在模型工具里，Key 只存本机</span>
+          </div>
+          <div id="assetPlatformList" class="platform-list"></div>
+        </div>
+        <div class="collect-section">
+          <div class="collect-head">
+            <span>本地兜底</span>
+            <span class="collect-hint">域名优先用上方测绘平台；平台结果不够时用 domainCollect（本地一键收集）</span>
+          </div>
+          <div id="collectTools" class="collect-tools"></div>
+        </div>
+        <div class="csv-section">
+          <div class="csv-head">
+            <div class="csv-title">项目总表 CSV</div>
+            <button class="ghost-btn mini" id="csvImport">导入 CSV</button>
+          </div>
+          <div class="drawer-note">收集结果都进这一张总表；导入的表让 Spirit 整理进来，点条目用本机程序打开。</div>
+          <div id="projectCsvList" class="asset-list"></div>
+          <input type="file" id="csvImportFile" accept=".csv,text/csv" hidden>
+        </div>
+      </section>
+      <section class="drawer-panel" data-dpanel="assets" hidden>
+        <div id="assetSummary" class="asset-summary"></div>
+        <div class="asset-tools">
+          <input class="setting-input" id="assetSearch" placeholder="搜索域名 / IP / URL / 标题">
+          <select class="setting-input" id="assetKind">
+            <option value="">全部</option>
+            <option value="domain">域名</option>
+            <option value="ip">IP</option>
+            <option value="url">URL</option>
+          </select>
+        </div>
+        <div id="assetList" class="asset-list"></div>
+        <div class="drawer-actions">
+          <button class="ghost-btn mini" id="assetClear">清理本项目资产</button>
+        </div>
+      </section>
+      <section class="drawer-panel" data-dpanel="queries" hidden>
+        <div id="queryList" class="asset-list"></div>
+      </section>
+    </div>
+  </section>
+</div>
+
+<!-- 设置弹窗 -->
+<div class="modal-mask" id="settingsMask" hidden>
+  <div class="settings" role="dialog" aria-modal="true">
+    <header class="settings-head">
+      <h2>设置</h2>
+      <div class="settings-head-actions">
+        <button class="ghost-btn" id="openConfig">打开配置文件</button>
+        <button class="icon-btn" id="closeSettings" title="关闭">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+    <div class="settings-body">
+      <nav class="settings-nav">
+        <button class="settings-nav-item active" data-panel="general">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.1" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M12.4 3.6l-1.1 1.1M4.7 11.3l-1.1 1.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          通用设置
+        </button>
+        <button class="settings-nav-item" data-panel="model">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.4" y="3.4" width="11.2" height="7.2" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5.6 13.2h4.8M8 10.6v2.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          模型
+        </button>
+        <button class="settings-nav-item" data-panel="disk">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.8" y="4" width="12.4" height="8" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M4.2 9.4h3.2M11.6 9.4h.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          硬盘
+        </button>
+      </nav>
+      <div class="settings-panels">
+        <section class="settings-panel" data-panel="general">
+          <div class="setting-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">外观</div>
+                <div class="setting-desc">跟随系统，或固定浅色 / 深色</div>
+              </div>
+              <div class="segmented" id="themeSeg">
+                <button data-value="system">跟随系统</button>
+                <button data-value="light">浅色</button>
+                <button data-value="dark">深色</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">字号</div>
+                <div class="setting-desc">对话正文大小</div>
+              </div>
+              <div class="segmented" id="fontSeg">
+                <button data-value="13">小</button>
+                <button data-value="14">标准</button>
+                <button data-value="15">大</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">对话目录</div>
+                <div class="setting-desc">历史对话与落盘文件（属于硬盘体系）</div>
+              </div>
+              <div class="setting-actions">
+                <span class="setting-value path" id="settingSessions">—</span>
+                <button class="ghost-btn mini" id="openSessions">打开</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">浏览器（ego lite）</div>
+                <div class="setting-desc" id="browserStatus">检查中…</div>
+              </div>
+              <div class="setting-actions">
+                <span class="setting-value path" id="browserPath">—</span>
+                <button class="ghost-btn mini" id="browserCheck">检查</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">本轮 token 预算</div>
+                <div class="setting-desc">0 = 不限；超了停这一轮</div>
+              </div>
+              <input class="setting-input" id="limitTurnTokens" type="number" min="0" step="1000" placeholder="0">
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">会话 token 预算</div>
+                <div class="setting-desc">0 = 不限；整个会话累计</div>
+              </div>
+              <input class="setting-input" id="limitSessionTokens" type="number" min="0" step="1000" placeholder="0">
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">重复调用上限</div>
+                <div class="setting-desc">同参数调用几次后拦截；0 = 关闭</div>
+              </div>
+              <input class="setting-input" id="repeatLimit" type="number" min="0" step="1" placeholder="3">
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">不可信内容之后</div>
+                <div class="setting-desc">工具输出（bash / 网页 / 文件）之后的写操作：仅审计 / 确认 / 阻止</div>
+              </div>
+              <div class="segmented" id="untrustedSeg">
+                <button data-value="warn">仅审计</button>
+                <button data-value="confirm">确认</button>
+                <button data-value="block">阻止</button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="settings-panel" data-panel="disk" hidden>
+          <div class="setting-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">硬盘</div>
+                <div class="setting-desc">agent 计算机的存储主体系；工作区是它的子体系。冷数据由模型按需读取。</div>
+              </div>
+            </div>
+            <div class="setting-row setting-row-top">
+              <div>
+                <div class="setting-title">区域</div>
+                <div class="setting-desc">每个区域在磁盘上就是一个文件夹；能力只认区域，不直接拼路径。</div>
+                <div class="path-list" id="diskAreaList"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="settings-panel" data-panel="model" hidden>
+          <div id="providerListView">
+            <div class="provider-intro">
+              <div class="provider-title">模型</div>
+              <div class="provider-desc">填入各提供商的 API 密钥即可使用其模型。配置写入数据目录的 config.json。</div>
+            </div>
+            <div class="provider-tools">
+              <input class="preset-search provider-search" id="providerSearch" placeholder="搜索供应商（名称 / 网址 / 备注）">
+              <button class="ghost-btn mini" id="providerExport">导出</button>
+              <button class="ghost-btn mini" id="providerImport">导入</button>
+            </div>
+            <div class="provider-list" id="providerList"></div>
+            <button class="provider-add" id="addProvider">＋ 添加模型提供商</button>
+          </div>
+
+          <div id="presetView" hidden>
+            <div class="preset-head">
+              <button class="preset-back" id="presetBack" title="返回" aria-label="返回">←</button>
+              <div>
+                <div class="provider-title">添加供应商</div>
+                <div class="provider-desc">预设来自 cc-switch（MIT）：地址和协议已经填好，通常只需要补 API Key。</div>
+              </div>
+            </div>
+            <input class="preset-search" id="presetSearch" placeholder="搜索名称或网址，例如 kimi、智谱、openrouter、opencode.ai">
+            <div class="preset-layout">
+              <nav class="preset-rail" id="presetCats"></nav>
+              <div class="preset-scroll" id="presetScroll">
+                <button type="button" class="preset-custom" id="presetCustom">
+                  <span class="preset-custom-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                  </span>
+                  <span class="preset-custom-meta">
+                    <span class="preset-custom-name">自定义配置</span>
+                    <span class="preset-custom-desc">手动填写请求地址和 API Key</span>
+                  </span>
+                </button>
+                <div class="preset-groups" id="presetGrid"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="provider-form" id="providerForm" hidden>
+            <div class="form-title" id="providerFormTitle">添加模型提供商</div>
+            <div class="preset-bar" id="presetBar" hidden>
+              <span class="preset-chip" id="presetChip"></span>
+              <button class="ghost-btn mini" id="presetChange">更换预设</button>
+            </div>
+            <div class="form-section">
+              <div class="form-section-title">基础信息</div>
+              <div class="form-row">
+                <label for="pfName">名称 <span class="req">*</span></label>
+                <div class="name-field">
+                  <button type="button" class="icon-pick" id="pfIconPick" title="选择图标">
+                    <span class="icon-preview" id="pfIconPreview">?</span>
+                  </button>
+                  <input id="pfName" placeholder="DeepSeek" aria-required="true">
+                  <input type="color" id="pfIconColor" value="#9ca3af" title="图标颜色">
+                  <button type="button" class="ghost-btn mini" id="pfIconClear">用首字</button>
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="pfNotes">备注</label>
+                <input id="pfNotes" placeholder="可选，例如：群里推荐的 / 便宜但慢">
+              </div>
+              <div class="form-row">
+                <label for="pfWebsite">官网</label>
+                <input id="pfWebsite" placeholder="https://…（可选）">
+              </div>
+            </div>
+            <div class="form-section">
+              <div class="form-section-title">接口</div>
+              <div class="form-row">
+                <label for="pfCategory">分类</label>
+                <select id="pfCategory">
+                  <option value="official">官方</option>
+                  <option value="cn_official">国内官方</option>
+                  <option value="aggregator">聚合平台</option>
+                  <option value="third_party">第三方</option>
+                  <option value="cloud_provider">云服务商</option>
+                  <option value="custom">自定义</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="pfKind">接口类型</label>
+                <select id="pfKind">
+                  <option value="openai">OpenAI Responses（DeepSeek / Kimi / GLM / Qwen）</option>
+                  <option value="openai-chat">OpenAI Chat（硅基流动 / OpenRouter / 自定义）</option>
+                  <option value="anthropic">Anthropic Messages（Claude 官方 / 中转）</option>
+                </select>
+              </div>
+              <div class="form-row" id="pfAuthRow" hidden>
+                <label for="pfAuth">认证方式</label>
+                <select id="pfAuth">
+                  <option value="token">Authorization: Bearer（ANTHROPIC_AUTH_TOKEN）</option>
+                  <option value="key">x-api-key（ANTHROPIC_API_KEY）</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="pfBaseUrl">Base URL</label>
+                <input id="pfBaseUrl" placeholder="https://api.deepseek.com">
+              </div>
+              <div class="form-row align-top">
+                <label for="pfEndpoints">端点候选</label>
+                <div class="endpoint-field">
+                  <textarea id="pfEndpoints" class="prompt-input endpoint-input" rows="3" spellcheck="false"
+                    placeholder="一行一个地址（第一个就是 Base URL）；备选端点用于测速切换"></textarea>
+                  <div class="endpoint-actions">
+                    <button type="button" class="ghost-btn mini" id="pfCheck">测试连接</button>
+                    <button type="button" class="ghost-btn mini" id="pfSpeedTest">测速</button>
+                    <span class="endpoint-result" id="pfSpeedResult"></span>
+                  </div>
+                  <div class="speed-list" id="pfSpeedList" hidden></div>
+                </div>
+              </div>
+              <div class="form-note">Responses / Anthropic 接口跟随“深度思考”开关；Chat 接口的思考能力由模型自己决定。</div>
+              <div class="form-row">
+                <label for="pfKey">API Key</label>
+                <div class="model-field">
+                  <input id="pfKey" type="password" placeholder="sk-…（留空 = 不改）" autocomplete="off">
+                  <a class="ghost-btn mini" id="pfKeyLink" href="#" target="_blank" rel="noreferrer" hidden>获取 Key</a>
+                </div>
+              </div>
+            </div>
+            <div class="form-section">
+              <div class="form-section-title">模型</div>
+              <div class="form-row">
+                <label for="pfModels">模型</label>
+                <div class="model-field">
+                  <input id="pfModels" placeholder="点“获取模型”，或手动填模型 ID，逗号分隔">
+                  <button class="ghost-btn mini" id="pfFetchModels">获取模型</button>
+                </div>
+              </div>
+              <div class="model-picker" id="modelPicker" hidden>
+                <div class="model-picker-head">
+                  <input id="modelFilter" placeholder="筛选模型">
+                  <button class="ghost-btn mini" id="modelClose">收起</button>
+                </div>
+                <div class="model-list" id="modelList"></div>
+              </div>
+            </div>
+            <div class="form-section">
+              <div class="form-section-title">价格与上下文</div>
+              <div class="form-row">
+                <label for="pfPriceIn">输入价格</label>
+                <input id="pfPriceIn" type="number" min="0" step="0.01" placeholder="元 / 百万 token（可不填）">
+              </div>
+              <div class="form-row">
+                <label for="pfPriceOut">输出价格</label>
+                <input id="pfPriceOut" type="number" min="0" step="0.01" placeholder="元 / 百万 token（可不填）">
+              </div>
+              <div class="form-row">
+                <label for="pfPriceCached">缓存输入价</label>
+                <input id="pfPriceCached" type="number" min="0" step="0.01" placeholder="不填 = 按输入价">
+              </div>
+              <div class="form-row">
+                <label for="pfContextWindow">上下文窗口</label>
+                <input id="pfContextWindow" type="number" min="1000" step="1000" placeholder="不填 = 128000（默认）">
+              </div>
+            </div>
+            <details class="form-advanced" id="pfAdvanced">
+              <summary>高级选项</summary>
+              <div class="form-row">
+                <label for="pfMaxTokens">最大输出</label>
+                <input id="pfMaxTokens" type="number" min="256" step="256" placeholder="不填 = 用全局设置">
+              </div>
+              <div class="form-row">
+                <label for="pfCurrency">价格币种</label>
+                <select id="pfCurrency">
+                  <option value="CNY">人民币 CNY</option>
+                  <option value="USD">美元 USD</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="pfFailover">故障转移</label>
+                <label class="check-line">
+                  <input type="checkbox" id="pfFailover">
+                  加入故障转移队列（请求失败时按列表顺序换下一家）
+                </label>
+              </div>
+            </details>
+            <div class="form-actions">
+              <button class="ghost-btn danger" id="pfDelete">删除</button>
+              <span class="form-spacer"></span>
+              <button class="ghost-btn" id="pfCancel">取消</button>
+              <button class="ghost-btn primary" id="pfSave">保存</button>
+            </div>
+          </div>
+
+          <div class="setting-card provider-behavior" id="providerBehavior">
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">推理等级</div>
+                <div class="setting-desc">开启深度思考时使用</div>
+              </div>
+              <div class="segmented" id="effortSeg">
+                <button data-value="low">Low</button>
+                <button data-value="high">High</button>
+                <button data-value="max">Max</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">深度思考</div>
+                <div class="setting-desc">在轮次之间生效</div>
+              </div>
+              <button class="switch" id="thinkingSwitch" role="switch" aria-checked="false"></button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">故障转移</div>
+                <div class="setting-desc">请求失败时按列表顺序换下一家；连续失败 4 次的提供商会熔断 60 秒</div>
+              </div>
+              <button class="switch" id="failoverSwitch" role="switch" aria-checked="false"></button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  if (matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.body.dataset.theme = 'dark'
+  } else {
+    document.body.dataset.theme = 'light'
+  }
+</script>
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

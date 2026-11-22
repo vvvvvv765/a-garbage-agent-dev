@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spirit-engine"
+version = "0.1.0"
+description = "Agent 通用计算机引擎（Spirit）：能力体系 + 调度核心 + Web 控制台"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "openai>=1.40",
+  "anthropic>=0.40",
+  "flask>=3.0",
+  "regex>=2024.0",
+  "dnspython>=2.7",
+  "PyYAML>=6.0",
+]
+
+[project.scripts]
+spirit = "MoBo.main:main"
+spirit-web = "WebUI.server:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+  "AgentStart*", "Bus*", "Cancel*", "Capabilities*", "Config*", "Contract*", "DC*", "Disk*",
+  "Engine*", "Faults*", "GPU*", "Log*", "Memory*", "MoBo*", "Paths*",
+  "Prompts*", "Provider*", "Redact*", "Render*", "Scenarios*", "Turn*", "Usage*",
+  "UserInput*", "WebUI*",
+]
+exclude = ["shell*", "Session_Storage*", "Logs*", "dist*", "build*"]
+
+[tool.setuptools.package-data]
+Prompts = ["*.md"]
+Scenarios = ["*.md", "*/*.md", "*/*.json"]
+WebUI = [
+  "static/*.*",
+  "static/fonts/*",
+  "static/provider-icons/*",
+  "static/dsh/*.*",
+  "static/dsh/fonts/*",
+]
